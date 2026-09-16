@@ -314,10 +314,12 @@ var CFG = Object.assign({
   priorTrainingOptions:[], noPriorTrainingLabel:"No prior formal training",
   trainingRecencyOptions:["Within the past 12 months","1\u20132 years ago",
                           "3\u20135 years ago","More than 5 years ago"],
-  showScoreToRespondent:true, showDescriptiveGroupings:true
+  showScoreToRespondent:true, showDescriptiveGroupings:true,
+  formSubmitId:"", formSubmitAjax:true,
+  emailSubject:"CCCPA \u2014 {localpart} \u2014 {timepoint}"
 }, window.CCCPA_CONFIG || {});
 
-var LOCAL_ONLY = !CFG.endpoint;
+var LOCAL_ONLY = !CFG.formSubmitId;
 var NONE = CFG.noPriorTrainingLabel;
 var QUEUE_KEY  = "cccpa.queue.v1";
 var DRAFT_KEY  = "cccpa.draft.v1";
@@ -632,16 +634,91 @@ function clientId(){
   }catch(e){ return ""; }
 }
 
-/* ---------- transmit ----------
-   Sent as text/plain so the browser issues a "simple" request and skips
-   the CORS preflight, which the Power Automate HTTP trigger does not
-   answer. The flow parses the body with json(triggerBody()). */
+/* ---------- transmit: FormSubmit.co ----------
+   The AJAX endpoint accepts JSON, answers CORS properly, and never renders
+   a captcha screen. Each key becomes a row in the notification email, so
+   they are written as readable labels rather than internal field names. */
+function formSubmitUrl(){
+  return "https://formsubmit.co/" +
+         (CFG.formSubmitAjax ? "ajax/" : "") +
+         encodeURIComponent(CFG.formSubmitId);
+}
+
+function buildSubject(d){
+  var tpl = CFG.emailSubject || "CCCPA \u2014 {localpart} \u2014 {timepoint}";
+  var map = {
+    email:     d.email || "",
+    localpart: (d.email || "").split("@")[0],
+    timepoint: d.timepoint || "",
+    unit:      d.unit || "",
+    role:      d.role || "",
+    name:      d.name || ""
+  };
+  return tpl.replace(/\{(\w+)\}/g, function(m,k){
+    return Object.prototype.hasOwnProperty.call(map,k) ? map[k] : m;
+  });
+}
+
+/* Readable label -> value, in the order they appear in the email. */
+function emailRows(d){
+  var rows = [
+    ["Timepoint",            d.timepoint],
+    ["Email",                d.email],
+    ["Name",                 d.name],
+    ["Unit",                 d.unit],
+    ["Role",                 d.role],
+    ["Years in role",        d.yearsExp],
+    ["Prior WVP training",   d.priorTraining],
+    ["Prior training count", d.priorTrainingCount],
+    ["Any prior training",   d.anyPriorTraining],
+    ["Training recency",     d.trainingRecency],
+    ["TOTAL SCORE (10-110)", d.totalScore],
+    ["Mean item score",      d.meanScore],
+    ["Psychological mean",   d.psychMean],
+    ["Physical mean",        d.physMean],
+    ["Training mean",        d.trainMean]
+  ];
+  ITEMS.forEach(function(it){
+    rows.push(["Q" + it.n + ". " + it.t, d["q"+it.n]]);
+  });
+  rows.push(["Submitted (local)", d.submittedLocal]);
+  rows.push(["Submitted (UTC)",   d.submittedUtc]);
+  rows.push(["Timezone",          d.timezone]);
+  rows.push(["Client ID",         d.clientId]);
+  rows.push(["Form version",      d.formVersion]);
+  return rows;
+}
+
 function send(payload){
-  return fetch(CFG.endpoint, {
-    method:"POST",
-    body: JSON.stringify(payload)   // no Content-Type header on purpose
+  var body = {
+    _subject:  buildSubject(payload),
+    _template: "table",
+    /* Safe to turn off here: the AJAX endpoint never renders a captcha, and
+       this form deliberately does not use _autoresponse, which is the one
+       feature that breaks when the captcha is disabled. */
+    _captcha:  "false"
+  };
+  emailRows(payload).forEach(function(pair){
+    body[pair[0]] = (pair[1] == null ? "" : String(pair[1]));
+  });
+  /* Paste-into-Excel copy of the same response.
+     The sentinels exist for the Power Automate email-parsing flow: it can
+     slice between [[CSV]] and [[/CSV]], which we control, instead of
+     FormSubmit's <td>/<pre> table markup, which we don't. */
+  body.csv_header = csvHeader();
+  body.csv_row    = "[[CSV]]" + csvRow(payload) + "[[/CSV]]";
+
+  return fetch(formSubmitUrl(), {
+    method:  "POST",
+    headers: { "Content-Type":"application/json", "Accept":"application/json" },
+    body:    JSON.stringify(body)
   }).then(function(r){
-    if(!r.ok) throw new Error("HTTP "+r.status);
+    if(!r.ok) throw new Error("HTTP " + r.status);
+    return r.json().catch(function(){ return {}; });
+  }).then(function(j){
+    if(j && String(j.success) === "false"){
+      throw new Error(j.message || "FormSubmit rejected the submission");
+    }
     return true;
   });
 }
@@ -726,19 +803,37 @@ function showResults(d, transmitted){
 }
 
 /* ---------- CSV ---------- */
+/* ---------- CSV ----------
+   One column definition, used by BOTH the download button and the csv_row
+   line in the notification email, so the two can never drift apart. */
+var CSV_COLS = (function(){
+  var c = ["submittedUtc","email","name","timepoint","unit","role","yearsExp",
+           "priorTraining","priorTrainingCount","anyPriorTraining","trainingRecency",
+           "totalScore","meanScore","psychMean","physMean","trainMean"];
+  ITEMS.forEach(function(it){ c.push("q"+it.n); });
+  /* Tail three: no analytic value on their own, but they make csv_row map
+     1:1 onto all 29 columns of the SharePoint list with no gaps, and
+     clientId is what lets you spot a duplicate submission. */
+  c.push("timezone","clientId","formVersion");
+  return c;
+})();
+function csvLine(a){
+  /* EVERY field is quoted, unconditionally. The downstream Power Automate
+     flow splits the emailed csv_row on the '","' field boundary, which only
+     works if no field is ever left bare. Quoting selectively (the usual
+     minimal-CSV habit) silently breaks that split. Excel reads a
+     fully-quoted row identically. */
+  return a.map(function(x){
+    x = (x==null?"":String(x));
+    return '"' + x.replace(/"/g,'""') + '"';
+  }).join(",");
+}
+function csvHeader(){ return csvLine(CSV_COLS); }
+function csvRow(d){ return csvLine(CSV_COLS.map(function(c){ return d[c]; })); }
+
 function csv(){
   var d = lastPayload; if(!d) return;
-  var cols = ["submittedUtc","email","name","timepoint","unit","role","yearsExp",
-              "priorTraining","priorTrainingCount","anyPriorTraining","trainingRecency",
-              "totalScore","meanScore","psychMean","physMean","trainMean"];
-  ITEMS.forEach(function(it){ cols.push("q"+it.n); });
-  var line = function(a){
-    return a.map(function(x){
-      x = (x==null?"":String(x));
-      return /[",\n]/.test(x) ? '"'+x.replace(/"/g,'""')+'"' : x;
-    }).join(",");
-  };
-  var blob = new Blob(["﻿"+line(cols)+"\r\n"+line(cols.map(function(c){return d[c];}))+"\r\n"],
+  var blob = new Blob(["﻿"+csvHeader()+"\r\n"+csvRow(d)+"\r\n"],
                       {type:"text/csv;charset=utf-8;"});
   var a = el("a");
   a.href = URL.createObjectURL(blob);

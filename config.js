@@ -4,11 +4,33 @@
    ------------------------------------------------------------------ */
 window.CCCPA_CONFIG = {
 
-  /* Paste the "HTTP POST URL" from your Power Automate
-     "When an HTTP request is received" trigger here.
-     Leave as "" to run the page in LOCAL-ONLY mode (scores + CSV
-     download, nothing transmitted). Useful for piloting. */
-  endpoint: "",
+  /* ------------------------------------------------------------------
+     FormSubmit.co delivery
+     ------------------------------------------------------------------
+     PHASE 1 — put your raw email here, deploy, and submit the form once.
+     FormSubmit emails you a one-time "Activate Form" confirmation.
+     PHASE 2 — after activating, replace this with the random form ID
+     FormSubmit gives you, so your address is not sitting in the public
+     page source. The value is the only thing that changes.
+
+     Leave as "" to run in LOCAL-ONLY mode (scores + CSV download,
+     nothing transmitted) — useful for piloting. */
+  formSubmitId: "scott.brickner2@med.usc.edu",
+
+  /* true  = https://formsubmit.co/ajax/<id>   (no captcha, no page nav)
+     false = https://formsubmit.co/<id>        (native POST, captcha screen)
+
+     Keep this true. false is only needed for _autoresponse, which this
+     survey deliberately does not use: the respondent already sees their
+     score on screen, and the captcha interstitial is exactly the friction
+     the QR-code workflow was built to avoid. */
+  formSubmitAjax: true,
+
+  /* Subject line of each notification email. Person first, timepoint last,
+     so sorting your inbox by subject puts each respondent's PRE and POST
+     next to each other — that adjacency is the pairing operation.
+     Tokens: {email} {localpart} {timepoint} {unit} {role} {name} */
+  emailSubject: "CCCPA \u2014 {localpart} \u2014 {timepoint}",
 
   /* Email domains accepted by the respondent ID field. */
   allowedEmailDomains: ["med.usc.edu", "usc.edu"],
