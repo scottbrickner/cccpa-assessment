@@ -62,12 +62,47 @@ window.CCCPA_CONFIG = {
     "More than 5 years ago"
   ],
 
-  /* Optional practice-area picker. Set to [] to hide. */
+  /* Unit / practice area.
+     Sourced from "KHS - Inpatient and Periop Staff with User Details"
+     (active staff only). Strings match the roster's Department field
+     EXACTLY so responses join cleanly to staffing data later -- note it is
+     "ICU Float Pool", not "Float Pool ICU".
+
+     Scoped 2026-09-16 to direct-care inpatient only: 21 units, ~1,248
+     active staff. Deliberately excluded -- Periop Float Pool and all 12
+     periop/procedural areas (Surgery, PACU, endo, IR, pre/post-op, day
+     hospital), and the two non-direct-care departments (Nursing Admin,
+     Inservice Education -- the latter being the WPV lead's own department).
+     There is no Emergency Department in this roster; it is inpatient and
+     periop only.
+
+     An entry is a plain string, or {label, options:[...]} for a group. */
   units: [
-    "CTICU", "MICU", "SICU", "Neuro ICU", "CCU",
-    "Stepdown / PCU", "Emergency Department",
-    "Medical-Surgical", "Float Pool", "Other"
+    { label: "Float pool", options: [
+      "ICU Float Pool",
+      "Float Pool"
+    ]},
+    { label: "Critical care", options: [
+      "4 S ICU", "7 S ICU", "5 W ICU", "8 W Med ICU",
+      "7 W ICU", "7 E ICU", "5 S ICU", "4 Fl ICU"
+    ]},
+    { label: "Stepdown / telemetry", options: [
+      "6 EW MedSurg Stepdown", "6 S Tele", "7 N Tele", "5 N Tele",
+      "9 EW Surgical Telemetry", "2 EW Tele", "5 E Tele", "8 E Tele"
+    ]},
+    { label: "Med-surg / hem-onc", options: [
+      "3 Fl HemOnc-BMT", "4 Fl HemOnc-BMT", "6 N Med-Surg"
+    ]},
+    "Other"
   ],
+
+  /* Pre-selected values. A defaulted field opens already answered, which
+     saves a tap for the majority case but means anyone who does not look
+     submits the default. Justified while the study population IS the ICU
+     float pool; delete this entry if you extend to broader RN/CNA groups. */
+  fieldDefaults: {
+    unit: "ICU Float Pool"
+  },
 
   /* Roles. Set to [] to hide. */
   roles: ["RN", "Charge RN", "Nurse Practitioner", "PCT / CNA",

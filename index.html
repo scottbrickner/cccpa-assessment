@@ -315,7 +315,7 @@ var CFG = Object.assign({
   trainingRecencyOptions:["Within the past 12 months","1\u20132 years ago",
                           "3\u20135 years ago","More than 5 years ago"],
   showScoreToRespondent:true, showDescriptiveGroupings:true,
-  formSubmitId:"", formSubmitAjax:true,
+  formSubmitId:"", formSubmitAjax:true, fieldDefaults:{},
   emailSubject:"CCCPA \u2014 {localpart} \u2014 {timepoint}"
 }, window.CCCPA_CONFIG || {});
 
@@ -418,13 +418,27 @@ META.forEach(function(f){
   } else if(f.type==="select"){
     ctl = el("select",{id:"f_"+f.id, name:f.id});
     ctl.appendChild(el("option",{value:""},"Select…"));
-    f.opts.forEach(function(o){ ctl.appendChild(el("option",{value:o},esc(o))); });
+    /* An entry is either a plain string, or {label, options:[...]} which
+       renders an <optgroup> -- a long flat unit list is unusable on a phone. */
+    f.opts.forEach(function(o){
+      if(o && typeof o === "object" && o.options){
+        var g = el("optgroup",{label:o.label});
+        o.options.forEach(function(v){ g.appendChild(el("option",{value:v},esc(v))); });
+        ctl.appendChild(g);
+      } else {
+        ctl.appendChild(el("option",{value:o},esc(o)));
+      }
+    });
   } else {
     ctl = el("input",{id:"f_"+f.id, name:f.id, type:f.type==="email"?"email":"text",
                       autocomplete:f.id==="email"?"email":"off"});
     if(f.ph) ctl.setAttribute("placeholder",f.ph);
   }
   if(f.required && f.type!=="checkboxes") ctl.setAttribute("aria-required","true");
+  /* Pre-select a configured default, if this field has one. */
+  if(CFG.fieldDefaults && CFG.fieldDefaults[f.id] != null && f.type !== "checkboxes"){
+    ctl.value = CFG.fieldDefaults[f.id];
+  }
   w.appendChild(ctl);
   w.appendChild(el("div",{class:"err-msg"}, esc(f.err||"This field is required.")));
   if(f.type!=="checkboxes"){
