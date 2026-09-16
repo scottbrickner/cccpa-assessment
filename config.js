@@ -15,7 +15,7 @@ window.CCCPA_CONFIG = {
 
      Leave as "" to run in LOCAL-ONLY mode (scores + CSV download,
      nothing transmitted) — useful for piloting. */
-  formSubmitId: "scott.brickner2@med.usc.edu",
+  formSubmitId: "82b5afae35bdfa8b7efe6a40c50a7745",
 
   /* true  = https://formsubmit.co/ajax/<id>   (no captcha, no page nav)
      false = https://formsubmit.co/<id>        (native POST, captcha screen)
