@@ -1,0 +1,38 @@
+name: Deploy to GitHub Pages
+
+# Publishes this repo to GitHub Pages as-is. Same convention as
+# ct-surgery-sim-bundle: plain static HTML/CSS/JS, no bundler, so there's no
+# checkout->build->dist step, no SPA-fallback 404.html, and no base-path
+# injection (index.html loads config.js by a relative path, so it resolves
+# correctly whether served from a domain root or GitHub Pages'
+# <user>.github.io/<repo>/ project subpath).
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v4
+      # Skip Jekyll processing - unnecessary for plain static HTML.
+      - run: touch .nojekyll
+      - uses: actions/configure-pages@v5
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: .
+      - id: deployment
+        uses: actions/deploy-pages@v4

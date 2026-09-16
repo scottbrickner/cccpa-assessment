@@ -1,0 +1,797 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>CCCPA Self-Assessment</title>
+<meta name="description" content="Confidence in Coping with Patient Aggression (CCCPA) self-assessment instrument.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@700;800&family=Source+Sans+3:wght@400;600;700;900&display=swap" rel="stylesheet">
+<style>
+/* ==================================================================
+   Swiss Grid Brand System — BRAND MODE: KECK
+   Tokens per STYLEGUIDE.md (Knowledge Hub | Critical Care)
+   ================================================================== */
+:root{
+  --primary:#990000; --secondary:#FFCC00;
+  --ink:#000000; --body:#333333; --dim:#757575; --faint:#A6A6A6;
+  --hairline:#E7E7E7; --rule:#CCCCCC; --bg:#FFFFFF; --surface:#FFFFFF;
+  --surface-2:#FAFAFA;
+  --danger:#D32E2E; --danger-bg:#F7E4E4;
+  --caution:#9A7B00; --caution-bg:#FFF4CC;
+  --good:#00695C;    --good-bg:#DFF1F1;
+  --font-primary:'Source Sans 3','Source Sans Pro','Segoe UI',
+    -apple-system,BlinkMacSystemFont,Roboto,Helvetica,Arial,sans-serif;
+  --font-accent:'Montserrat','Segoe UI Semibold','Source Sans 3',sans-serif;
+  --rail:15%;
+}
+@media (prefers-color-scheme:dark){
+  :root:not([data-theme="light"]){
+    --primary:#E05A5A; --ink:#F5F3F1; --body:#DCD8D4; --dim:#9A948E;
+    --faint:#6F6963; --hairline:#2E2C2A; --rule:#3C3936;
+    --bg:#141312; --surface:#1C1B1A; --surface-2:#232120;
+    --danger:#F08A80; --danger-bg:#2E1A18;
+    --caution:#E0A33A; --caution-bg:#2C2415;
+    --good:#4FBE92;   --good-bg:#14261F;
+  }
+}
+:root[data-theme="dark"]{
+  --primary:#E05A5A; --ink:#F5F3F1; --body:#DCD8D4; --dim:#9A948E;
+  --faint:#6F6963; --hairline:#2E2C2A; --rule:#3C3936;
+  --bg:#141312; --surface:#1C1B1A; --surface-2:#232120;
+  --danger:#F08A80; --danger-bg:#2E1A18;
+  --caution:#E0A33A; --caution-bg:#2C2415;
+  --good:#4FBE92;   --good-bg:#14261F;
+}
+*{box-sizing:border-box}
+html,body{margin:0;padding:0}
+body{background:var(--bg); color:var(--body); font-family:var(--font-primary);
+  font-size:17px; line-height:1.45; -webkit-text-size-adjust:100%}
+
+/* ---------- two-zone grid: rail + content ---------- */
+.shell{max-width:1040px; margin:0 auto; padding:0 20px;
+  display:grid; grid-template-columns:var(--rail) 1fr; column-gap:28px}
+.rail{position:relative; padding-top:26px}
+.rail:after{content:""; position:absolute; top:26px; right:-14px; bottom:0;
+  width:1px; background:var(--rule)}
+.rail .eyebrow{font-size:.68rem; font-weight:700; letter-spacing:.09em;
+  text-transform:uppercase; color:var(--primary); line-height:1.35; margin:0}
+.rail .tick{width:40px; height:4px; background:var(--primary); margin-top:14px}
+.zone{min-width:0; padding-bottom:72px}
+.topbar{height:6px; background:var(--primary); margin-top:26px}
+@media(max-width:760px){
+  .shell{grid-template-columns:1fr; column-gap:0; padding:0 16px}
+  .rail{padding-top:22px}
+  .rail:after{display:none}
+  .rail .tick{margin-top:8px}
+  .topbar{margin-top:10px}
+}
+
+/* ---------- masthead ---------- */
+.masthead{padding:22px 0 4px}
+.masthead h1{font-family:var(--font-accent); font-weight:700; color:var(--ink);
+  font-size:1.62rem; line-height:1.18; margin:0; letter-spacing:-.01em}
+.masthead .thesis{color:var(--dim); font-size:.96rem; margin:10px 0 0; max-width:62ch}
+
+/* ---------- sections ---------- */
+.card{padding:26px 0 4px; border-top:1px solid var(--hairline); margin-top:26px}
+.card:first-of-type{border-top:0}
+.card h2{font-family:var(--font-accent); font-weight:700; color:var(--ink);
+  font-size:1.02rem; margin:0 0 3px}
+.card .hint{margin:0 0 18px; font-size:.86rem; color:var(--dim)}
+
+/* ---------- fields ---------- */
+.grid{display:grid; gap:16px; grid-template-columns:repeat(2,minmax(0,1fr))}
+@media(max-width:620px){.grid{grid-template-columns:1fr}}
+.field label{display:block; font-size:.72rem; font-weight:700; letter-spacing:.055em;
+  text-transform:uppercase; color:var(--dim); margin-bottom:6px}
+.req{color:var(--primary)}
+.field input,.field select{width:100%; padding:10px 11px; font:inherit;
+  font-size:.94rem; color:var(--ink); background:var(--surface);
+  border:1px solid var(--rule); border-radius:2px}
+.field input:focus,.field select:focus{outline:2px solid var(--primary);
+  outline-offset:1px; border-color:var(--primary)}
+.field .err-msg{display:none; font-size:.78rem; color:var(--danger); margin-top:5px}
+.field.invalid input,.field.invalid select{border-color:var(--danger)}
+.field.invalid .err-msg{display:block}
+.field.full{grid-column:1 / -1; margin-top:2px}
+.field select:disabled{opacity:.5; cursor:not-allowed}
+.field .sublabel{font-size:.8rem; color:var(--dim); font-weight:400;
+  text-transform:none; letter-spacing:0; margin:-3px 0 9px}
+
+/* ---------- prior-training checkbox block ----------
+   Structure kept deliberately: two aligned columns, the none option in the
+   right column under MOAB, the recency dropdown in a divider row at the foot. */
+.checks{display:grid; gap:11px 24px; grid-template-columns:repeat(2,minmax(0,1fr));
+  border:1px solid var(--rule); border-top:3px solid var(--primary);
+  padding:16px 18px; background:var(--surface-2)}
+@media(max-width:620px){.checks{grid-template-columns:1fr; gap:11px}}
+.field.invalid .checks{border-color:var(--danger); border-top-color:var(--primary)}
+.checks label{display:flex; gap:10px; align-items:flex-start; cursor:pointer;
+  font-size:.92rem; font-weight:400; text-transform:none; letter-spacing:0;
+  color:var(--ink); line-height:1.35; margin-bottom:0}
+.checks input{width:17px; height:17px; margin:1px 0 0; flex:0 0 auto;
+  accent-color:var(--primary); cursor:pointer}
+.checks label.none-opt{color:var(--dim); font-style:italic}
+.checks .recency-row{grid-column:1 / -1; border-top:1px solid var(--rule);
+  padding-top:15px; margin-top:6px; display:flex; align-items:center;
+  gap:14px; flex-wrap:wrap}
+.checks .recency-row > label{margin-bottom:0; white-space:nowrap;
+  font-size:.72rem; font-weight:700; letter-spacing:.055em;
+  text-transform:uppercase; color:var(--dim); display:block}
+.checks .recency-row select{width:auto; flex:1 1 230px; min-width:190px}
+.checks .recency-row .err-msg{flex-basis:100%; margin-top:0}
+
+/* ---------- items ---------- */
+.item{padding:20px 0; border-top:1px solid var(--hairline)}
+.item:first-of-type{border-top:0; padding-top:2px}
+.item .q{display:flex; gap:11px; margin-bottom:13px; align-items:baseline}
+.item .num{flex:0 0 auto; width:22px; text-align:right; color:var(--primary);
+  font-weight:900; font-size:.82rem; font-variant-numeric:tabular-nums;
+  position:relative; top:-1px}
+.item .q p{margin:0; font-weight:600; font-size:.98rem; color:var(--ink)}
+.scale{display:flex; gap:4px}
+.scale label{flex:1 1 0; min-width:0; position:relative; cursor:pointer;
+  text-align:center; margin-bottom:0}
+.scale input{position:absolute; opacity:0; width:100%; height:100%;
+  left:0; top:0; margin:0; cursor:pointer}
+.scale .dot{display:block; padding:10px 0; font-size:.82rem; font-weight:700;
+  color:var(--dim); background:var(--surface-2); border:1px solid var(--rule);
+  border-radius:2px; transition:background .1s, color .1s, border-color .1s}
+.scale label:hover .dot{border-color:var(--primary); color:var(--primary)}
+.scale input:checked + .dot{background:var(--primary); border-color:var(--primary);
+  color:#fff}
+.scale input:focus-visible + .dot{outline:2px solid var(--secondary); outline-offset:2px}
+.anchors{display:flex; justify-content:space-between; margin-top:8px;
+  font-size:.74rem; font-weight:600; letter-spacing:.03em; color:var(--faint)}
+.anchors span:last-child{text-align:right}
+.item.unanswered{background:var(--danger-bg); padding-left:11px;
+  padding-right:11px; margin:0 -11px}
+@media(max-width:580px){
+  .scale{flex-wrap:wrap; gap:5px}
+  .scale label{flex:0 0 calc(16.66% - 5px)}
+  .scale .dot{padding:12px 0}
+}
+
+/* ---------- progress ---------- */
+.progress-bar{position:sticky; top:0; z-index:20; background:var(--bg);
+  padding:11px 0 11px; border-bottom:1px solid var(--hairline)}
+.progress-bar .track{height:3px; background:var(--hairline)}
+.progress-bar .fill{height:100%; width:0%; background:var(--primary);
+  transition:width .2s ease}
+.progress-bar .txt{font-size:.72rem; font-weight:700; letter-spacing:.055em;
+  text-transform:uppercase; color:var(--dim); margin-top:7px}
+
+/* ---------- buttons ---------- */
+.actions{display:flex; gap:11px; flex-wrap:wrap; margin-top:26px; align-items:center}
+button{font:inherit; cursor:pointer; border-radius:2px; border:1px solid transparent;
+  padding:11px 22px; font-size:.86rem; font-weight:700; letter-spacing:.05em;
+  text-transform:uppercase}
+.btn-primary{background:var(--primary); color:#fff}
+.btn-primary:hover{filter:brightness(.88)}
+.btn-primary:disabled{opacity:.45; cursor:not-allowed}
+.btn-ghost{background:transparent; color:var(--dim); border-color:var(--rule)}
+.btn-ghost:hover{border-color:var(--primary); color:var(--primary)}
+
+/* ---------- callouts ---------- */
+.notice{padding:13px 15px; font-size:.88rem; margin-top:16px;
+  border-left:5px solid; display:none; line-height:1.45}
+.notice.show{display:block}
+.notice.err{background:var(--danger-bg); border-color:var(--danger); color:var(--danger)}
+.notice.ok{background:var(--good-bg); border-color:var(--good); color:var(--good)}
+.notice.warn{background:var(--caution-bg); border-color:var(--caution); color:var(--caution)}
+
+/* ---------- results ---------- */
+#results{display:none}
+.score-hero{padding:6px 0 22px; display:flex; align-items:baseline; gap:14px;
+  flex-wrap:wrap}
+.score-hero .big{font-family:var(--font-accent); font-size:3.4rem; font-weight:800;
+  line-height:1; color:var(--primary)}
+.score-hero .of{font-size:1rem; color:var(--faint); font-weight:700}
+.score-hero .lbl{font-size:.72rem; letter-spacing:.09em; text-transform:uppercase;
+  color:var(--dim); font-weight:700}
+.subscores{display:grid; gap:0; grid-template-columns:repeat(4,1fr);
+  border-top:1px solid var(--hairline)}
+@media(max-width:620px){.subscores{grid-template-columns:repeat(2,1fr)}}
+.subscore{padding:14px 14px 14px 0; border-right:1px solid var(--hairline)}
+.subscore:last-child{border-right:0}
+.subscore .v{font-size:1.45rem; font-weight:900; color:var(--ink); line-height:1.1}
+.subscore .n{font-size:.68rem; color:var(--dim); font-weight:700;
+  text-transform:uppercase; letter-spacing:.06em; margin-top:4px}
+table.profile{width:100%; border-collapse:collapse; margin-top:6px; font-size:.88rem}
+table.profile th{text-align:left; font-size:.68rem; text-transform:uppercase;
+  letter-spacing:.06em; color:var(--dim); padding:7px 8px 7px 0;
+  border-bottom:1px solid var(--rule); font-weight:700}
+table.profile td{padding:9px 8px 9px 0; border-bottom:1px solid var(--hairline);
+  vertical-align:middle; color:var(--ink)}
+table.profile td:last-child{text-align:right; font-weight:900; width:44px; padding-right:0}
+.meter{height:5px; background:var(--hairline); min-width:70px}
+.meter i{display:block; height:100%; background:var(--primary)}
+
+/* ---------- footer ---------- */
+footer.legal{margin-top:36px; padding-top:18px; border-top:1px solid var(--rule);
+  font-size:.8rem; color:var(--dim); line-height:1.55}
+footer.legal p{margin:0 0 10px}
+footer.legal strong{color:var(--body); font-weight:700}
+.wordmark{font-size:.68rem; font-weight:700; letter-spacing:.09em;
+  text-transform:uppercase; color:var(--faint); margin-top:18px}
+.sr{position:absolute; width:1px; height:1px; overflow:hidden; clip:rect(0 0 0 0)}
+</style>
+</head>
+<body>
+
+<div class="shell">
+  <div class="rail">
+    <p class="eyebrow" id="hdr-eyebrow">Keck Medicine of USC</p>
+    <div class="tick"></div>
+  </div>
+  <div class="zone">
+    <div class="topbar"></div>
+    <header class="masthead">
+      <h1>Confidence in coping with patient aggression</h1>
+      <p class="thesis">A brief self-assessment of your confidence managing aggression in the clinical setting. There are no right or wrong answers &mdash; rate how you feel <em>right now</em>.</p>
+    </header>
+
+<!-- ============ FORM ============ -->
+<form id="form" novalidate>
+
+  <div class="progress-bar">
+    <div class="track"><div class="fill" id="fill"></div></div>
+    <div class="txt" id="ptxt">0 of 10 items answered</div>
+  </div>
+
+  <section class="card">
+    <h2>About you</h2>
+    <p class="hint">Used to match your pre- and post-training responses. Responses are reported in aggregate.</p>
+    <div class="grid" id="meta-grid"></div>
+  </section>
+
+  <section class="card">
+    <h2>Self-assessment</h2>
+    <p class="hint">Select the number that best describes you on each 11-point scale.</p>
+    <div id="items"></div>
+  </section>
+
+  <div class="notice err" id="formErr"></div>
+
+  <div class="actions">
+    <button type="submit" class="btn-primary" id="submitBtn">Submit assessment</button>
+    <button type="button" class="btn-ghost" id="clearBtn">Clear form</button>
+  </div>
+</form>
+
+<!-- ============ RESULTS ============ -->
+<section id="results">
+  <div class="card">
+    <h2>Thank you &mdash; your responses were recorded</h2>
+    <p class="hint" id="resultMeta"></p>
+    <div class="score-hero">
+      <div><span class="big" id="scoreTotal">&mdash;</span><span class="of"> / 110</span></div>
+      <div class="lbl">Total CCCPA score</div>
+    </div>
+    <div class="subscores" id="subscores"></div>
+  </div>
+
+  <div class="card">
+    <h2>Your item profile</h2>
+    <p class="hint">Lower-scoring items are where targeted training is likely to help most.</p>
+    <table class="profile"><thead><tr>
+      <th style="width:52%">Item</th><th>Confidence</th><th>Score</th>
+    </tr></thead><tbody id="profileBody"></tbody></table>
+  </div>
+
+  <div class="notice warn" id="offlineNote"></div>
+
+  <div class="actions">
+    <button type="button" class="btn-ghost" id="csvBtn">Download my responses (CSV)</button>
+    <button type="button" class="btn-ghost" id="againBtn">Submit another response</button>
+  </div>
+</section>
+
+<footer class="legal">
+  <p><strong>Instrument:</strong> Confidence in Coping with Patient Aggression (CCCPA), Thackrey, M. (1987). <em>Criminal Justice and Behavior, 14</em>(1), 57&ndash;60. Used with permission of the author.</p>
+  <p><strong>Privacy:</strong> Your email is collected only to link pre- and post-training responses and to issue education credit. Individual scores are not shared with managers. Do not enter patient information anywhere on this form.</p>
+  <p id="localOnlyFooter" style="display:none"><strong>Local-only mode:</strong> no submission endpoint is configured, so nothing is transmitted. Use the CSV download to capture responses.</p>
+  <p class="wordmark">Keck Medicine of USC &middot; Workplace Violence Prevention</p>
+</footer>
+
+  </div>
+</div>
+
+<script src="config.js"></script>
+<script>
+/* ==================================================================
+   CCCPA Self-Assessment
+   ================================================================== */
+(function(){
+"use strict";
+
+var CFG = Object.assign({
+  endpoint:"", allowedEmailDomains:["med.usc.edu","usc.edu"],
+  orgName:"Keck Medicine of USC", programName:"",
+  timepoints:["Pre-training","Post-training"], units:[], roles:[],
+  priorTrainingOptions:[], noPriorTrainingLabel:"No prior formal training",
+  trainingRecencyOptions:["Within the past 12 months","1\u20132 years ago",
+                          "3\u20135 years ago","More than 5 years ago"],
+  showScoreToRespondent:true, showDescriptiveGroupings:true
+}, window.CCCPA_CONFIG || {});
+
+var LOCAL_ONLY = !CFG.endpoint;
+var NONE = CFG.noPriorTrainingLabel;
+var QUEUE_KEY  = "cccpa.queue.v1";
+var DRAFT_KEY  = "cccpa.draft.v1";
+
+/* ---------- instrument ---------- */
+var ITEMS = [
+ {n:1,  t:"How comfortable are you in working with an aggressive patient?",                  lo:"Very uncomfortable",    hi:"Very comfortable",    g:"psych"},
+ {n:2,  t:"How good is your present level of training for handling psychological aggression?",lo:"Very poor",             hi:"Very good",           g:"train"},
+ {n:3,  t:"How able are you to intervene physically with an aggressive patient?",            lo:"Very unable",           hi:"Very able",           g:"phys"},
+ {n:4,  t:"How self-assured do you feel in the presence of an aggressive patient?",          lo:"Not very self-assured", hi:"Very self-assured",   g:"psych"},
+ {n:5,  t:"How able are you to intervene psychologically with an aggressive patient?",       lo:"Very unable",           hi:"Very able",           g:"psych"},
+ {n:6,  t:"How good is your present level of training for handling physical aggression?",    lo:"Very poor",             hi:"Very good",           g:"train"},
+ {n:7,  t:"How safe do you feel around an aggressive patient?",                              lo:"Very unsafe",           hi:"Very safe",           g:"psych"},
+ {n:8,  t:"How effective are the techniques that you know for dealing with aggression?",     lo:"Very ineffective",      hi:"Very effective",      g:"train"},
+ {n:9,  t:"How able are you to meet the needs of an aggressive patient?",                    lo:"Very unable",           hi:"Very able",           g:"psych"},
+ {n:10, t:"How able are you to protect yourself physically from an aggressive patient?",     lo:"Very unable",           hi:"Very able",           g:"phys"}
+];
+var GROUPS = {
+  psych:{label:"Psychological",  items:[1,4,5,7,9]},
+  phys: {label:"Physical",       items:[3,10]},
+  train:{label:"Training / technique", items:[2,6,8]}
+};
+
+var $  = function(s,r){return (r||document).querySelector(s);};
+var el = function(tag,attrs,html){
+  var e=document.createElement(tag);
+  if(attrs) for(var k in attrs) e.setAttribute(k,attrs[k]);
+  if(html!=null) e.innerHTML=html;
+  return e;
+};
+var esc = function(s){return String(s).replace(/[&<>"']/g,function(c){
+  return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c];});};
+
+/* ---------- header ---------- */
+$("#hdr-eyebrow").textContent =
+  [CFG.orgName, CFG.programName].filter(Boolean).join("  ·  ");
+if(LOCAL_ONLY) $("#localOnlyFooter").style.display="block";
+
+/* ---------- build metadata fields ---------- */
+var META = [
+  {id:"email", label:"Work email address", required:true, type:"email",
+   ph:"firstname.lastname@med.usc.edu",
+   err:"Enter a valid "+CFG.allowedEmailDomains.map(function(d){return "@"+d;}).join(" or ")+" address."},
+  {id:"name", label:"Full name", required:false, type:"text", ph:"Optional"},
+  {id:"timepoint", label:"Assessment timepoint", required:true, type:"select",
+   opts:CFG.timepoints, err:"Select a timepoint."}
+];
+if(CFG.units && CFG.units.length)
+  META.push({id:"unit", label:"Unit / practice area", required:true,
+             type:"select", opts:CFG.units, err:"Select your unit."});
+if(CFG.roles && CFG.roles.length)
+  META.push({id:"role", label:"Role", required:true, type:"select",
+             opts:CFG.roles, err:"Select your role."});
+META.push({id:"yearsExp", label:"Years in current role", required:false,
+           type:"select", opts:["< 1 year","1–2 years","3–5 years","6–10 years","> 10 years"]});
+META.push({id:"priorTraining",
+           label:"Prior formal workplace violence prevention or de-escalation training",
+           required:true, type:"checkboxes", full:true,
+           opts:(CFG.priorTrainingOptions||[]), noneLabel:NONE,
+           sub:"Select every program you have completed, here or at a previous employer.",
+           err:"Select at least one program, or \u201c"+NONE+".\u201d"});
+META.push({id:"trainingRecency", label:"Most recent of those trainings",
+           required:true, type:"select", opts:(CFG.trainingRecencyOptions||[]),
+           err:"Select how recently you last trained."});
+
+var mg = $("#meta-grid");
+META.forEach(function(f){
+  var w = el("div",{class:"field"+(f.full?" full":""),"data-field":f.id});
+  w.appendChild(el("label",{for:"f_"+f.id, id:"lbl_"+f.id},
+    esc(f.label)+(f.required?' <span class="req" aria-hidden="true">*</span>':"")));
+  if(f.sub) w.appendChild(el("div",{class:"sublabel"}, esc(f.sub)));
+  var ctl;
+  if(f.type==="checkboxes"){
+    ctl = el("div",{class:"checks", role:"group","aria-labelledby":"lbl_"+f.id});
+    var opts = f.opts.concat([f.noneLabel]);
+    opts.forEach(function(o){
+      var isNone = (o === f.noneLabel);
+      var lab = el("label", isNone ? {class:"none-opt"} : null);
+      var cb  = el("input",{type:"checkbox", name:f.id, value:o});
+      if(isNone) cb.setAttribute("data-none","1");
+      cb.addEventListener("change", function(){
+        var all = ctl.querySelectorAll('input[type=checkbox]');
+        if(isNone && cb.checked){
+          all.forEach(function(x){ if(x !== cb) x.checked = false; });
+        } else if(!isNone && cb.checked){
+          all.forEach(function(x){ if(x.getAttribute("data-none")) x.checked = false; });
+        }
+        syncRecency();
+        w.classList.remove("invalid");
+        saveDraft();
+      });
+      lab.appendChild(cb);
+      lab.appendChild(el("span",null, esc(o)));
+      ctl.appendChild(lab);
+    });
+  } else if(f.type==="select"){
+    ctl = el("select",{id:"f_"+f.id, name:f.id});
+    ctl.appendChild(el("option",{value:""},"Select…"));
+    f.opts.forEach(function(o){ ctl.appendChild(el("option",{value:o},esc(o))); });
+  } else {
+    ctl = el("input",{id:"f_"+f.id, name:f.id, type:f.type==="email"?"email":"text",
+                      autocomplete:f.id==="email"?"email":"off"});
+    if(f.ph) ctl.setAttribute("placeholder",f.ph);
+  }
+  if(f.required && f.type!=="checkboxes") ctl.setAttribute("aria-required","true");
+  w.appendChild(ctl);
+  w.appendChild(el("div",{class:"err-msg"}, esc(f.err||"This field is required.")));
+  if(f.type!=="checkboxes"){
+    ctl.addEventListener("input", function(){ w.classList.remove("invalid"); saveDraft(); });
+    ctl.addEventListener("change", function(){ w.classList.remove("invalid"); saveDraft(); });
+  }
+  mg.appendChild(w);
+});
+
+/* ---------- seat the recency dropdown inside the checkbox box ---------- */
+(function(){
+  var checks = document.querySelector('[data-field="priorTraining"] .checks');
+  var rw     = document.querySelector('[data-field="trainingRecency"]');
+  if(checks && rw){ rw.classList.add("recency-row"); checks.appendChild(rw); }
+})();
+
+/* ---------- prior-training <-> recency coupling ---------- */
+function noneChecked(){
+  var n = document.querySelector('input[name="priorTraining"][data-none]');
+  return !!(n && n.checked);
+}
+function anyTrainingChecked(){
+  return document.querySelectorAll(
+    'input[name="priorTraining"]:checked:not([data-none])').length > 0;
+}
+function syncRecency(){
+  var sel = document.getElementById("f_trainingRecency");
+  if(!sel) return;
+  var w = document.querySelector('[data-field="trainingRecency"]');
+  if(noneChecked()){
+    sel.value = ""; sel.disabled = true;
+    if(w){ w.style.opacity = ".55"; w.classList.remove("invalid"); }
+  } else {
+    sel.disabled = false;
+    if(w) w.style.opacity = "";
+  }
+}
+
+/* ---------- build items ---------- */
+var itemsHost = $("#items");
+ITEMS.forEach(function(it){
+  var sec = el("section",{class:"item","data-item":it.n,
+    role:"radiogroup","aria-labelledby":"lbl"+it.n});
+  var q = el("div",{class:"q"});
+  q.appendChild(el("span",{class:"num","aria-hidden":"true"}, String(it.n)));
+  q.appendChild(el("p",{id:"lbl"+it.n}, esc(it.t)));
+  sec.appendChild(q);
+  var scale = el("div",{class:"scale"});
+  for(var v=1; v<=11; v++){
+    var lab = el("label");
+    var inp = el("input",{type:"radio", name:"q"+it.n, value:String(v),
+      "aria-label":v+" — "+(v===1?it.lo:(v===11?it.hi:"of 11"))});
+    inp.addEventListener("change", function(){
+      sec.classList.remove("unanswered"); updateProgress(); saveDraft();
+    });
+    lab.appendChild(inp);
+    lab.appendChild(el("span",{class:"dot","aria-hidden":"true"}, String(v)));
+    scale.appendChild(lab);
+  }
+  sec.appendChild(scale);
+  var anc = el("div",{class:"anchors"});
+  anc.appendChild(el("span",null,esc(it.lo)));
+  anc.appendChild(el("span",null,esc(it.hi)));
+  sec.appendChild(anc);
+  itemsHost.appendChild(sec);
+});
+
+/* ---------- progress ---------- */
+function answered(){
+  return ITEMS.filter(function(it){
+    return !!document.querySelector('input[name="q'+it.n+'"]:checked');
+  }).length;
+}
+function updateProgress(){
+  var a = answered(), pct = (a/ITEMS.length)*100;
+  $("#fill").style.width = pct+"%";
+  $("#ptxt").textContent = a+" of "+ITEMS.length+" items answered";
+}
+
+/* ---------- draft persistence (best-effort) ---------- */
+function saveDraft(){
+  try{ localStorage.setItem(DRAFT_KEY, JSON.stringify(collect(true))); }catch(e){}
+}
+function loadDraft(){
+  var raw; try{ raw = localStorage.getItem(DRAFT_KEY); }catch(e){ return; }
+  if(!raw) return;
+  var d; try{ d = JSON.parse(raw); }catch(e){ return; }
+  META.forEach(function(f){
+    if(f.type==="checkboxes"){
+      (d[f.id+"List"] || []).forEach(function(val){
+        document.querySelectorAll('input[name="'+f.id+'"]').forEach(function(x){
+          if(x.value === val) x.checked = true;
+        });
+      });
+      return;
+    }
+    var v = d[f.id]; if(v==null || v==="") return;
+    var c = document.getElementById("f_"+f.id); if(c) c.value = v;
+  });
+  syncRecency();
+  ITEMS.forEach(function(it){
+    var v = d["q"+it.n]; if(!v) return;
+    var r = document.querySelector('input[name="q'+it.n+'"][value="'+v+'"]');
+    if(r) r.checked = true;
+  });
+  updateProgress();
+}
+
+/* ---------- validation ---------- */
+function validEmail(v){
+  if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v)) return false;
+  var dom = v.split("@").pop().toLowerCase();
+  return CFG.allowedEmailDomains.some(function(d){ return dom === d.toLowerCase(); });
+}
+function validate(){
+  var bad = [], firstEl = null;
+  META.forEach(function(f){
+    if(!f.required) return;
+    var w = document.querySelector('[data-field="'+f.id+'"]');
+    var ok;
+    if(f.type==="checkboxes"){
+      ok = document.querySelectorAll('input[name="'+f.id+'"]:checked').length > 0;
+    } else if(f.id==="trainingRecency" && noneChecked()){
+      ok = true;
+    } else {
+      var c = document.getElementById("f_"+f.id);
+      var v = (c.value||"").trim();
+      ok = f.id==="email" ? validEmail(v) : v.length > 0;
+    }
+    w.classList.toggle("invalid", !ok);
+    if(!ok){ bad.push(f.label); if(!firstEl) firstEl = w; }
+  });
+  var missing = [];
+  ITEMS.forEach(function(it){
+    var sec = document.querySelector('[data-item="'+it.n+'"]');
+    var ok  = !!document.querySelector('input[name="q'+it.n+'"]:checked');
+    sec.classList.toggle("unanswered", !ok);
+    if(!ok){ missing.push(it.n); if(!firstEl) firstEl = sec; }
+  });
+  var box = $("#formErr");
+  if(bad.length || missing.length){
+    var parts = [];
+    if(bad.length) parts.push("Complete: "+bad.join(", ")+".");
+    if(missing.length) parts.push("Answer item"+(missing.length>1?"s":"")+" "+missing.join(", ")+".");
+    box.textContent = parts.join(" ");
+    box.classList.add("show");
+    if(firstEl) firstEl.scrollIntoView({behavior:"smooth", block:"center"});
+    return false;
+  }
+  box.classList.remove("show");
+  return true;
+}
+
+/* ---------- collect ---------- */
+function collect(partial){
+  var d = {};
+  META.forEach(function(f){
+    if(f.type==="checkboxes"){
+      var vals = [];
+      document.querySelectorAll('input[name="'+f.id+'"]:checked')
+        .forEach(function(x){ vals.push(x.value); });
+      d[f.id] = vals.join("; ");
+      d[f.id+"List"] = vals;
+      return;
+    }
+    var c = document.getElementById("f_"+f.id);
+    d[f.id] = c ? (c.value||"").trim() : "";
+  });
+  if(d.email) d.email = d.email.toLowerCase();
+  d.anyPriorTraining = anyTrainingChecked() ? "Yes" : (noneChecked() ? "No" : "");
+  d.priorTrainingCount = (d.priorTrainingList||[])
+    .filter(function(x){ return x !== NONE; }).length;
+  if(noneChecked()) d.trainingRecency = "Not applicable";
+  var sum = 0, n = 0;
+  ITEMS.forEach(function(it){
+    var r = document.querySelector('input[name="q'+it.n+'"]:checked');
+    var v = r ? parseInt(r.value,10) : null;
+    d["q"+it.n] = v;
+    if(v){ sum += v; n++; }
+  });
+  d.totalScore = n === ITEMS.length ? sum : (partial ? null : sum);
+  d.meanScore  = n === ITEMS.length ? Math.round((sum/ITEMS.length)*100)/100 : null;
+  Object.keys(GROUPS).forEach(function(g){
+    var ids = GROUPS[g].items, s = 0, ok = true;
+    ids.forEach(function(i){ if(d["q"+i]) s += d["q"+i]; else ok = false; });
+    d[g+"Mean"] = ok ? Math.round((s/ids.length)*100)/100 : null;
+  });
+  if(!partial){
+    d.instrument     = "CCCPA (Thackrey, 1987)";
+    d.submittedUtc   = new Date().toISOString();
+    d.submittedLocal = new Date().toLocaleString();
+    d.timezone       = (Intl.DateTimeFormat().resolvedOptions().timeZone) || "";
+    d.clientId       = clientId();
+    d.formVersion    = "1.0.0";
+  }
+  return d;
+}
+function clientId(){
+  var k = "cccpa.cid";
+  try{
+    var v = localStorage.getItem(k);
+    if(!v){
+      v = (Date.now().toString(36) + Math.random().toString(36).slice(2,10));
+      localStorage.setItem(k, v);
+    }
+    return v;
+  }catch(e){ return ""; }
+}
+
+/* ---------- transmit ----------
+   Sent as text/plain so the browser issues a "simple" request and skips
+   the CORS preflight, which the Power Automate HTTP trigger does not
+   answer. The flow parses the body with json(triggerBody()). */
+function send(payload){
+  return fetch(CFG.endpoint, {
+    method:"POST",
+    body: JSON.stringify(payload)   // no Content-Type header on purpose
+  }).then(function(r){
+    if(!r.ok) throw new Error("HTTP "+r.status);
+    return true;
+  });
+}
+function queue(payload){
+  try{
+    var q = JSON.parse(localStorage.getItem(QUEUE_KEY) || "[]");
+    q.push(payload);
+    localStorage.setItem(QUEUE_KEY, JSON.stringify(q));
+  }catch(e){}
+}
+function flushQueue(){
+  if(LOCAL_ONLY) return;
+  var q;
+  try{ q = JSON.parse(localStorage.getItem(QUEUE_KEY) || "[]"); }catch(e){ return; }
+  if(!q.length) return;
+  var remaining = [];
+  var chain = Promise.resolve();
+  q.forEach(function(p){
+    chain = chain.then(function(){
+      return send(p).catch(function(){ remaining.push(p); });
+    });
+  });
+  chain.then(function(){
+    try{ localStorage.setItem(QUEUE_KEY, JSON.stringify(remaining)); }catch(e){}
+  });
+}
+
+/* ---------- results ---------- */
+var lastPayload = null;
+function showResults(d, transmitted){
+  lastPayload = d;
+  $("#form").style.display = "none";
+  $("#results").style.display = "block";
+
+  $("#resultMeta").textContent =
+    [d.timepoint, d.unit, d.role].filter(Boolean).join("  ·  ")
+    + (d.submittedLocal ? "  ·  " + d.submittedLocal : "");
+
+  if(CFG.showScoreToRespondent){
+    $("#scoreTotal").textContent = d.totalScore;
+  } else {
+    $(".score-hero").style.display = "none";
+  }
+
+  var sub = $("#subscores");
+  sub.innerHTML = "";
+  if(CFG.showScoreToRespondent){
+    sub.appendChild(el("div",{class:"subscore"},
+      '<div class="v">'+d.meanScore.toFixed(2)+'</div><div class="n">Mean item score</div>'));
+    if(CFG.showDescriptiveGroupings){
+      ["psych","phys","train"].forEach(function(g){
+        sub.appendChild(el("div",{class:"subscore"},
+          '<div class="v">'+d[g+"Mean"].toFixed(2)+'</div><div class="n">'+
+          esc(GROUPS[g].label)+'</div>'));
+      });
+    }
+  }
+
+  var tb = $("#profileBody"); tb.innerHTML = "";
+  ITEMS.slice().sort(function(a,b){ return d["q"+a.n] - d["q"+b.n]; })
+    .forEach(function(it){
+      var v = d["q"+it.n], pct = ((v-1)/10)*100;
+      var tr = el("tr");
+      tr.appendChild(el("td",null, esc(it.t)));
+      tr.appendChild(el("td",null,
+        '<div class="meter"><i style="width:'+pct+'%"></i></div>'));
+      tr.appendChild(el("td",null, String(v)));
+      tb.appendChild(tr);
+    });
+
+  var note = $("#offlineNote");
+  if(LOCAL_ONLY){
+    note.textContent = "This page is running in local-only mode — nothing was transmitted. Download the CSV and send it to your educator.";
+    note.classList.add("show");
+  } else if(!transmitted){
+    note.textContent = "Your responses could not reach the server right now, so they were saved on this device and will be sent automatically the next time you open this page on this browser. You can also download the CSV as a backup.";
+    note.classList.add("show");
+  } else {
+    note.classList.remove("show");
+  }
+  window.scrollTo({top:0, behavior:"smooth"});
+}
+
+/* ---------- CSV ---------- */
+function csv(){
+  var d = lastPayload; if(!d) return;
+  var cols = ["submittedUtc","email","name","timepoint","unit","role","yearsExp",
+              "priorTraining","priorTrainingCount","anyPriorTraining","trainingRecency",
+              "totalScore","meanScore","psychMean","physMean","trainMean"];
+  ITEMS.forEach(function(it){ cols.push("q"+it.n); });
+  var line = function(a){
+    return a.map(function(x){
+      x = (x==null?"":String(x));
+      return /[",\n]/.test(x) ? '"'+x.replace(/"/g,'""')+'"' : x;
+    }).join(",");
+  };
+  var blob = new Blob(["﻿"+line(cols)+"\r\n"+line(cols.map(function(c){return d[c];}))+"\r\n"],
+                      {type:"text/csv;charset=utf-8;"});
+  var a = el("a");
+  a.href = URL.createObjectURL(blob);
+  a.download = "CCCPA_"+(d.email||"response").replace(/[^a-z0-9]+/gi,"_")+"_"+
+               (d.timepoint||"").replace(/[^a-z0-9]+/gi,"_")+".csv";
+  document.body.appendChild(a); a.click();
+  setTimeout(function(){ URL.revokeObjectURL(a.href); a.remove(); }, 1000);
+}
+
+/* ---------- events ---------- */
+$("#form").addEventListener("submit", function(e){
+  e.preventDefault();
+  if(!validate()) return;
+  var btn = $("#submitBtn");
+  btn.disabled = true; btn.textContent = "Submitting…";
+  var d = collect(false);
+  try{ localStorage.removeItem(DRAFT_KEY); }catch(err){}
+
+  var done = function(ok){
+    btn.disabled = false; btn.textContent = "Submit assessment";
+    showResults(d, ok);
+  };
+  if(LOCAL_ONLY){ done(false); return; }
+  send(d).then(function(){ done(true); })
+         .catch(function(){ queue(d); done(false); });
+});
+
+$("#clearBtn").addEventListener("click", function(){
+  $("#form").reset();
+  try{ localStorage.removeItem(DRAFT_KEY); }catch(e){}
+  document.querySelectorAll(".invalid").forEach(function(n){ n.classList.remove("invalid"); });
+  document.querySelectorAll(".unanswered").forEach(function(n){ n.classList.remove("unanswered"); });
+  $("#formErr").classList.remove("show");
+  syncRecency();
+  updateProgress();
+});
+$("#csvBtn").addEventListener("click", csv);
+$("#againBtn").addEventListener("click", function(){
+  $("#results").style.display = "none";
+  $("#form").style.display = "block";
+  $("#form").reset();
+  document.querySelectorAll(".unanswered").forEach(function(n){ n.classList.remove("unanswered"); });
+  syncRecency();
+  updateProgress();
+  window.scrollTo({top:0, behavior:"smooth"});
+});
+
+loadDraft();
+syncRecency();
+updateProgress();
+flushQueue();
+
+})();
+</script>
+</body>
+</html>
