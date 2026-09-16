@@ -285,7 +285,6 @@ footer.legal strong{color:var(--body); font-weight:700}
 
   <div class="actions">
     <button type="button" class="btn-ghost" id="csvBtn">Download my responses (CSV)</button>
-    <button type="button" class="btn-ghost" id="againBtn">Submit another response</button>
   </div>
 </section>
 
@@ -885,15 +884,6 @@ $("#clearBtn").addEventListener("click", function(){
   updateProgress();
 });
 $("#csvBtn").addEventListener("click", csv);
-$("#againBtn").addEventListener("click", function(){
-  $("#results").style.display = "none";
-  $("#form").style.display = "block";
-  $("#form").reset();
-  document.querySelectorAll(".unanswered").forEach(function(n){ n.classList.remove("unanswered"); });
-  syncRecency();
-  updateProgress();
-  window.scrollTo({top:0, behavior:"smooth"});
-});
 
 loadDraft();
 syncRecency();
