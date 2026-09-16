@@ -314,7 +314,7 @@ var CFG = Object.assign({
   trainingRecencyOptions:["Within the past 12 months","1\u20132 years ago",
                           "3\u20135 years ago","More than 5 years ago"],
   showScoreToRespondent:true, showDescriptiveGroupings:true,
-  formSubmitId:"", formSubmitAjax:true, fieldDefaults:{},
+  formSubmitId:"", formSubmitAjax:true, fieldDefaults:{}, fieldNotes:{},
   emailSubject:"CCCPA \u2014 {localpart} \u2014 {timepoint}"
 }, window.CCCPA_CONFIG || {});
 
@@ -384,6 +384,13 @@ META.push({id:"trainingRecency", label:"Most recent of those trainings",
            required:true, type:"select", opts:(CFG.trainingRecencyOptions||[]),
            err:"Select how recently you last trained."});
 
+/* Optional explanatory note under a field label, set from config. */
+if(CFG.fieldNotes){
+  META.forEach(function(f){
+    if(CFG.fieldNotes[f.id] && !f.sub) f.sub = CFG.fieldNotes[f.id];
+  });
+}
+
 var mg = $("#meta-grid");
 META.forEach(function(f){
   var w = el("div",{class:"field"+(f.full?" full":""),"data-field":f.id});
@@ -424,6 +431,12 @@ META.forEach(function(f){
         var g = el("optgroup",{label:o.label});
         o.options.forEach(function(v){ g.appendChild(el("option",{value:v},esc(v))); });
         ctl.appendChild(g);
+      } else if(o && typeof o === "object" && o.value != null){
+        /* {value, disabled} -- visible but unselectable. Used to show a
+           timepoint that exists in the study design but is not open yet. */
+        var opt = el("option",{value:o.value}, esc(o.label || o.value));
+        if(o.disabled) opt.disabled = true;
+        ctl.appendChild(opt);
       } else {
         ctl.appendChild(el("option",{value:o},esc(o)));
       }

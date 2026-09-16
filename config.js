@@ -39,8 +39,18 @@ window.CCCPA_CONFIG = {
   orgName: "Keck Medicine of USC",
   programName: "Nursing Professional Development",
 
-  /* Timepoint options for pre/post administration. */
-  timepoints: ["Pre-training", "Post-training", "30-day follow-up"],
+  /* Timepoint options.
+     v1 of this study is PRE-ONLY: the intervention has not been defined yet,
+     so there is nothing to be "post" of. The later timepoints are shown but
+     disabled so respondents can see the design, and so re-opening them later
+     is a one-word edit (delete `disabled: true`) rather than a schema change.
+     The SharePoint Timepoint column is plain text, so nothing downstream
+     needs to change when they open. */
+  timepoints: [
+    "Pre-training",
+    { value: "Post-training",    disabled: true },
+    { value: "30-day follow-up", disabled: true }
+  ],
 
   /* Prior formal workplace violence prevention / de-escalation training.
      Add or remove programs to match what your staff have actually taken.
@@ -101,7 +111,13 @@ window.CCCPA_CONFIG = {
      submits the default. Justified while the study population IS the ICU
      float pool; delete this entry if you extend to broader RN/CNA groups. */
   fieldDefaults: {
-    unit: "ICU Float Pool"
+    unit: "ICU Float Pool",
+    timepoint: "Pre-training"
+  },
+
+  /* Short explanatory line under a field's label. */
+  fieldNotes: {
+    timepoint: "Baseline only for now \u2014 post-training and follow-up open once the education intervention is defined."
   },
 
   /* Roles. Set to [] to hide. */
