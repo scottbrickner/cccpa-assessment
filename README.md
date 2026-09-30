@@ -4,19 +4,28 @@ A single-page web form for administering the **Confidence in Coping with
 Patient Aggression (CCCPA)** instrument (Thackrey, 1987) as a pre/post measure
 around workplace violence prevention and de-escalation training.
 
-Static site — deploys to GitHub Pages. Responses post to a Power Automate flow
-that writes to a SharePoint list.
+Static site on GitHub Pages. Responses post to FormSubmit.co, which emails a
+notification; a Power Automate flow reads that email and writes a row to a
+SharePoint list.
+
+**Live:** https://scottbrickner.github.io/cccpa-assessment/
 
 ---
 
 ## What's here
 
 ```
-index.html                          the entire form (self-contained)
-config.js                           ← the only file you normally edit
-.nojekyll                           tells GitHub Pages to serve files as-is
-docs/sharepoint-and-flow-setup.md   SharePoint columns + Power Automate steps
+index.html                            the entire form (self-contained)
+config.js                             ← the only file you normally edit
+.nojekyll                             tells GitHub Pages to serve files as-is
+.github/workflows/deploy-pages.yml    Pages deploy, no build step
+docs/sharepoint-and-flow-setup.md     ← READ THIS: the full pipeline
+docs/CCCPA-SharePoint-list-seed.xlsx  built the list; kept for reference
 ```
+
+**`docs/sharepoint-and-flow-setup.md` is the real documentation** — the
+architecture, the two design decisions the flow depends on, the exact
+Power Automate expressions, the column index map, and the gotchas.
 
 ## Deploy
 
@@ -41,14 +50,19 @@ a project subpath without modification.
 
 Everything tunable lives in `config.js`:
 
-- `endpoint` — the Power Automate HTTP POST URL
-- `allowedEmailDomains` — defaults to `med.usc.edu` and `usc.edu`
-- `timepoints` — the pre/post selector options
-- `priorTrainingOptions` — the workplace violence prevention programs staff can select (AVADE, CPI, Welle, and so on); a mutually exclusive "no prior formal training" option is appended automatically
-- `noPriorTrainingLabel`, `trainingRecencyOptions` — wording for the none option and the recency dropdown
-- `units`, `roles` — set to `[]` to hide either field
-- `showScoreToRespondent` — set `false` to collect without showing the score back
-- `showDescriptiveGroupings` — see the caveat below
+- `formSubmitId` — the FormSubmit destination (currently a masked random ID, not the raw email). Set to `""` for local-only mode: scores and CSV download, nothing transmitted.
+- `formSubmitAjax` — keep `true`; the AJAX endpoint avoids the captcha interstitial
+- `emailSubject` — subject template, tokens `{email} {localpart} {timepoint} {unit} {role} {name}`
+- `timepoints` — a string, or `{value, disabled:true}` to show but grey out
+- `units` — a string, or `{label, options:[...]}` for an `<optgroup>`
+- `fieldDefaults` — pre-selected values
+- `fieldNotes` — a short line under a field's label
+- `allowedEmailDomains`, `roles`, `priorTrainingOptions`, `trainingRecencyOptions`
+- `showScoreToRespondent`, `showDescriptiveGroupings`
+
+Two things in `index.html` that look like style choices but are load-bearing,
+both commented in place: `csv_row` is wrapped in `[[CSV]]` sentinels, and every
+CSV field is quoted unconditionally. The flow depends on both. See the setup doc.
 
 ## What the page does
 
@@ -59,10 +73,10 @@ Everything tunable lives in `config.js`:
   disables the recency question
 - Blocks submission until every item is answered, and scrolls to the first gap
 - Saves a draft to the browser as the respondent works, so a refresh doesn't lose answers
-- Queues the submission locally and retries on next visit if the network or flow is down
+- Queues the submission locally and retries on next visit if the network is down
 - Shows the respondent their total, their mean, and an item profile sorted
   lowest-first — which doubles as a personal "here's where to focus" debrief
-- Offers a CSV of their own response as a backup path
+- Offers a CSV of their own response as a backup path (no resubmit option — one response per visit)
 
 Keyboard-navigable, screen-reader labeled, works on a phone, respects dark mode.
 
@@ -79,6 +93,15 @@ classifying individuals as adequate or inadequate.
 > for training debriefs, not validated subscales. Do **not** report them as
 > subscale scores in an abstract or manuscript. Set
 > `showDescriptiveGroupings: false` if that risk isn't worth the debrief value.
+
+## Current study state
+
+Baseline only. Post-training and 30-day follow-up appear in the timepoint
+dropdown but are disabled, because no intervention has been defined yet —
+re-opening them is deleting `disabled: true`, with no schema change.
+
+Unit defaults to `ICU Float Pool` and is scoped to 21 direct-care inpatient
+units from the KHS roster.
 
 ## Before you go live
 

@@ -318,7 +318,7 @@ var CFG = Object.assign({
   emailSubject:"CCCPA \u2014 {localpart} \u2014 {timepoint}"
 }, window.CCCPA_CONFIG || {});
 
-var LOCAL_ONLY = !CFG.formSubmitId;
+var LOCAL_ONLY = !CFG.formSubmitId && !CFG.flowUrl;
 var NONE = CFG.noPriorTrainingLabel;
 var QUEUE_KEY  = "cccpa.queue.v1";
 var DRAFT_KEY  = "cccpa.draft.v1";
@@ -748,6 +748,47 @@ function send(payload){
     return true;
   });
 }
+
+/* Second, independent delivery path: a Power Automate HTTP-triggered flow
+   that writes straight into the SharePoint list, inside the tenant.
+
+   Sends real JSON. Verified 2026-09-30 against the live trigger: Power
+   Automate answers the CORS preflight and puts Access-Control-Allow-Origin
+   on its reply, so the browser can both send application/json and READ the
+   result — which is exactly what FormSubmit could not do. Sending a proper
+   content type also means the flow gets a parsed object, so its expressions
+   read triggerBody()?['email'] rather than unpacking a base64 blob. */
+function sendFlow(payload){
+  if(!CFG.flowUrl) return Promise.reject(new Error("no flowUrl configured"));
+  return fetch(CFG.flowUrl, {
+    method:  "POST",
+    headers: { "Content-Type":"application/json" },
+    body:    JSON.stringify(payload)
+  })
+    .then(function(r){
+      if(!r.ok) throw new Error("flow HTTP " + r.status);
+      return true;
+    });
+}
+
+/* Deliver by every route configured, and count the response as delivered if
+   ANY of them lands. One relay outage should not lose a response, and on
+   2026-09-29 exactly that happened: FormSubmit returned 500 to every POST
+   for hours while the page told each person their answers had failed. */
+function deliver(payload){
+  var attempts = [];
+  if(CFG.formSubmitId) attempts.push(send(payload));
+  if(CFG.flowUrl)      attempts.push(sendFlow(payload));
+  if(!attempts.length) return Promise.reject(new Error("no delivery path"));
+
+  return new Promise(function(resolve, reject){
+    var failures = 0;
+    attempts.forEach(function(p){
+      p.then(function(){ resolve(true); })
+       .catch(function(){ if(++failures === attempts.length) reject(new Error("all delivery paths failed")); });
+    });
+  });
+}
 function queue(payload){
   try{
     var q = JSON.parse(localStorage.getItem(QUEUE_KEY) || "[]");
@@ -764,7 +805,7 @@ function flushQueue(){
   var chain = Promise.resolve();
   q.forEach(function(p){
     chain = chain.then(function(){
-      return send(p).catch(function(){ remaining.push(p); });
+      return deliver(p).catch(function(){ remaining.push(p); });
     });
   });
   chain.then(function(){
@@ -883,8 +924,8 @@ $("#form").addEventListener("submit", function(e){
     showResults(d, ok);
   };
   if(LOCAL_ONLY){ done(false); return; }
-  send(d).then(function(){ done(true); })
-         .catch(function(){ queue(d); done(false); });
+  deliver(d).then(function(){ done(true); })
+            .catch(function(){ queue(d); done(false); });
 });
 
 $("#clearBtn").addEventListener("click", function(){

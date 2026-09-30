@@ -26,6 +26,20 @@ window.CCCPA_CONFIG = {
      the QR-code workflow was built to avoid. */
   formSubmitAjax: true,
 
+  /* Power Automate HTTP-triggered flow that writes straight into the
+     SharePoint list. Paste the flow's POST URL here.
+
+     This is the tenant-native delivery path and it runs IN PARALLEL with
+     FormSubmit — a response counts as delivered if either one lands. Added
+     2026-09-29 after FormSubmit returned 500 to every POST for hours while
+     the page told each respondent their answers had failed.
+
+     Note: the URL is a public, unauthenticated write endpoint. Anyone
+     reading the page source can POST to it. The flow checks a shared secret
+     and drops anything without it — enough to stop drive-by junk, not a
+     security boundary. Keep the list free of anything sensitive. */
+  flowUrl: "https://07d2d1382fcae951a4c91c6e7ca2f2.05.environment.api.powerplatform.com:443/powerautomate/automations/direct/cu/21/workflows/5999a3a727224087bc5bd83f05bcfa14/triggers/manual/paths/invoke?api-version=1&sp=%2Ftriggers%2Fmanual%2Frun&sv=1.0&sig=-m_6NSwWOd4R_eyOGYu2_mqBq1436RXi9lq6Zz62VL0",
+
   /* Subject line of each notification email. Person first, timepoint last,
      so sorting your inbox by subject puts each respondent's PRE and POST
      next to each other — that adjacency is the pairing operation.

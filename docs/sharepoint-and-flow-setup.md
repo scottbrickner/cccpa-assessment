@@ -1,206 +1,317 @@
-# SharePoint list + Power Automate flow
+# CCCPA response pipeline — how it actually works
 
-Everything needed to turn the live page into a data-collecting instrument.
-Total time: about 25 minutes.
+Built and verified 2026-09-16. This documents the system as deployed, not as
+originally planned. An earlier version of this file described a Power Automate
+HTTP-trigger design that was abandoned; ignore any copy of it you find.
 
-Live page: **https://scottbrickner.github.io/cccpa-assessment/**
-(currently local-only — it collects nothing until Step 3 below)
-
----
-
-## Step 1 — Create the SharePoint list from the seed file
-
-`CCCPA-SharePoint-list-seed.xlsx` (next to this file) exists so you don't have
-to create 29 columns by hand. SharePoint infers them from the spreadsheet.
-
-1. Go to the SharePoint site where the list should live.
-2. **+ New → List → From Excel.**
-3. Upload the seed file and pick the table **`CCCPAResponses`**.
-4. **Check the column types on the import screen.** SharePoint guesses, and it
-   guesses wrong on at least one:
-   - **Submitted UTC → change to Single line of text.** It will guess Date.
-     Keep it as text; SharePoint's parsing of ISO 8601 strings is inconsistent
-     and you lose nothing, since the flow writes a clean sorted string.
-   - **Prior training → Multiple lines of text.** Not a multi-choice column
-     (see the note below).
-   - Q1–Q10, the means, the totals, and Prior training count → **Number**.
-   - Everything else → Single line of text or Choice, your preference.
-5. Name the list **`CCCPA Responses`** and create it.
-6. **Delete the two sample rows.** They exist only so SharePoint can infer
-   types. The READ ME sheet in the workbook says this too, but it's the step
-   people forget.
-7. **Set permissions now.** Break inheritance and restrict the list to the NPD
-   team. Respondents never touch SharePoint directly — only the flow's
-   connection account writes here.
-
-> **Why `Prior training` is plain text, not a multi-choice column.** The page
-> sends the selected programs two ways: `priorTraining` as a semicolon-delimited
-> string, and `priorTrainingList` as an array. Plain text takes the string with
-> no fuss and never breaks when you add a program to `config.js`. A real
-> multi-select column needs its choice values kept in exact sync with
-> `priorTrainingOptions` — and a mismatch fails the entire flow run, not just
-> that one field. If you want the multi-select anyway, map it from
-> `outputs('Payload')?['priorTrainingList']` and accept the maintenance.
+**Live form:** https://scottbrickner.github.io/cccpa-assessment/
+**List:** `CCCPA Responses` on `.../sites/ASCENDAnnualSkills2`
 
 ---
 
-## Step 2 — Build the flow
-
-New **Instant cloud flow** → trigger **"When an HTTP request is received."**
-
-### 2a. Trigger
-
-Leave the request body JSON schema **empty**. The page deliberately sends
-`text/plain` (see the CORS note below), so the body arrives as a raw string and
-a schema would not match it.
-
-Set **Who can trigger the flow** to **Anyone** (in the trigger's Settings).
-
-### 2b. Parse the body
-
-Add a **Compose** action named exactly `Payload`:
+## The path a response takes
 
 ```
-json(triggerBody())
+Respondent's browser
+    |  POST (JSON) to https://formsubmit.co/ajax/<form id>
+FormSubmit.co
+    |  notification email -> scott.brickner2@med.usc.edu
+Outlook Inbox
+    |  Power Automate: "When a new email arrives (V3)", subject contains CCCPA
+Flow: 4 Compose actions slice csv_row out of the HTML body
+    |
+SharePoint list "CCCPA Responses"  <- system of record
 ```
 
-Everything downstream then reads `outputs('Payload')?['fieldName']`.
+### Why email in the middle, rather than posting straight to a flow
 
-### 2c. Create the item
+The first build posted directly to a Power Automate HTTP trigger. It was
+abandoned because `Create item` silently dropped fields on some runs. The
+likely cause was Choice columns rejecting values not in their choice list —
+Choice failures don't error, they just leave the field blank.
 
-Add **SharePoint → Create item**, point it at `CCCPA Responses`, and map each
-field. The left column is what you'll see in the Create item action; the right
-is the expression to paste.
+The email-trigger design is slower (a minute or two of mail latency) but far
+more debuggable:
+
+- the source email sits in Outlook and can be re-read at any time
+- a failed run can be replayed with **Resubmit** in run history, with no new
+  form submission needed
+- the flow's raw trigger output shows exactly what arrived
+
+It also removed the CORS workaround the HTTP trigger required.
+
+---
+
+## Part 1 — the form
+
+Everything tunable lives in `config.js`. `index.html` reads all of it and
+should not need editing.
+
+| Key | What it does |
+|---|---|
+| `formSubmitId` | The FormSubmit destination. Currently the masked random ID, not the raw email. |
+| `formSubmitAjax` | `true` = `/ajax/` endpoint: no captcha screen, no page navigation. Leave it true. |
+| `emailSubject` | Subject template. Tokens: `{email} {localpart} {timepoint} {unit} {role} {name}` |
+| `allowedEmailDomains` | Client-side domain check on the respondent's address |
+| `timepoints` | An entry may be a string, or `{value, disabled:true}` to show but grey out |
+| `units` | An entry may be a string, or `{label, options:[...]}` for an `<optgroup>` |
+| `roles`, `trainingRecencyOptions`, `priorTrainingOptions` | Plain string lists |
+| `fieldDefaults` | Pre-selected values, e.g. `{unit: "ICU Float Pool"}` |
+| `fieldNotes` | A short explanatory line under a field's label |
+| `showScoreToRespondent`, `showDescriptiveGroupings` | Results-screen toggles |
+
+Setting `formSubmitId` to `""` puts the page in **local-only mode**: it scores
+and offers a CSV download but transmits nothing. Useful for piloting.
+
+### Two design decisions that the flow depends on
+
+**1. `csv_row` is wrapped in sentinels.**
+
+```
+[[CSV]]"2026-09-16T22:29:47.999Z","scott.brickner2@med.usc.edu",...,"1.0.0"[[/CSV]]
+```
+
+The flow slices between `[[CSV]]` and `[[/CSV]]` — markers we control — rather
+than FormSubmit's `<td>/<pre>` table markup, which they can change without
+warning. If you ever rebuild the flow, key off the sentinels.
+
+**2. Every CSV field is quoted, unconditionally.**
+
+Normal minimal-CSV practice is to quote only fields containing commas. That
+breaks this pipeline: the flow splits on the `","` field boundary, which
+requires that no field is ever bare. `csvLine()` in `index.html` carries a
+comment saying so. Do not "optimise" it.
+
+Excel reads a fully-quoted row identically, so the download button is unaffected.
+
+### Column order — 29 fields, fixed
+
+`CSV_COLS` in `index.html` is the single definition used by both the download
+button and the emailed `csv_row`, so the two cannot drift.
+
+```
+ 0 submittedUtc        8 priorTrainingCount   16-25 q1 ... q10
+ 1 email               9 anyPriorTraining     26 timezone
+ 2 name               10 trainingRecency      27 clientId
+ 3 timepoint          11 totalScore           28 formVersion
+ 4 unit               12 meanScore
+ 5 role               13 psychMean
+ 6 yearsExp           14 physMean
+ 7 priorTraining      15 trainMean
+```
+
+Changing this order silently corrupts the flow's field mapping. If you add a
+field, append it at the end and add a matching SharePoint column.
+
+---
+
+## Part 2 — FormSubmit
+
+Activation is per **email address + domain**, not per address. A form on a new
+host needs its own handshake even if the destination address is already active.
+
+Current form ID: `82b5afae35bdfa8b7efe6a40c50a7745` (an alias for the
+destination address, so the raw email is not in public page source).
+
+**No `_autoresponse`.** It only works with a native POST, which forces the
+reCAPTCHA interstitial — exactly the friction the QR-code workflow exists to
+avoid. The respondent already sees their score on screen, and `_autoresponse`
+is a static string that could not include it anyway.
+
+`_captcha: "false"` is set. Safe here precisely because there is no
+autoresponse; that is the one feature disabling the captcha would break.
+
+**FormSubmit stores nothing.** Delete an email and that response is gone —
+there is no export. The SharePoint list is the only durable copy.
+
+---
+
+## Part 3 — the flow
+
+Trigger: **Office 365 Outlook → When a new email arrives (V3)**
+
+| Setting | Value |
+|---|---|
+| Folder | `Inbox` |
+| From | `submissions@formsubmit.co` |
+| Subject Filter | `CCCPA` |
+| Include Attachments | No |
+| Only with Attachments | No |
+| Importance | Any |
+
+The subject filter is a substring match, so it catches every respondent's
+subject line while never colliding with the Unit In-Service flow. Do not put
+the em-dash in the filter.
+
+> **If you ever add an Outlook rule** that files these into a folder, the
+> trigger stops firing — it watches Inbox. Repoint the trigger to that folder
+> in the same sitting, or skip the rule.
+
+### The Compose chain
+
+Four Compose actions. Action names matter: Power Automate converts spaces to
+underscores in `outputs()` references.
+
+**`Get text after CSV marker`**
+```
+substring(triggerBody()?['body'], add(indexOf(triggerBody()?['body'], '[[CSV]]'), length('[[CSV]]')))
+```
+
+**`Extract CSV row`**
+```
+substring(outputs('Get_text_after_CSV_marker'), 0, indexOf(outputs('Get_text_after_CSV_marker'), '[[/CSV]]'))
+```
+
+**`Decode CSV row`** — FormSubmit HTML-escapes the quotes
+```
+replace(replace(outputs('Extract_CSV_row'), '&quot;', '"'), '&amp;', '&')
+```
+
+**`Split CSV row`** — strips the outer quotes, splits on the field boundary
+```
+split(substring(outputs('Decode_CSV_row'), 1, sub(length(outputs('Decode_CSV_row')), 2)), '","')
+```
+
+Output is an array of exactly **29** strings. Verified against a real email.
+
+Three things about the real email body, confirmed rather than assumed:
+
+- quotes arrive as `&quot;`; nothing else inside the value needs decoding
+- a hidden preview `<div>` at the top carries a truncated plain-text copy of
+  the first few fields, but it stops before `csv_row`, so `indexOf('[[CSV]]')`
+  finds the right one
+- Proofpoint injects an "Untrusted Sender" banner into the body; irrelevant,
+  because the slice is anchored on the sentinels rather than on position
+
+Known cosmetic gap: an apostrophe in a respondent's name arrives as `&#39;`.
+To fix, add one more nesting to `Decode CSV row`:
+`replace(<the whole expression>, '&#39;', '''')` — four quote marks, which is
+Power Automate's escaping for a single `'`.
+
+### Create item
+
+Site `ASCENDAnnualSkills2`, list `CCCPA Responses`. Map via the **Expression**
+tab, not the dynamic-content picker.
 
 | SharePoint field | Expression |
 |---|---|
-| Title | `outputs('Payload')?['email']` |
-| Email | `outputs('Payload')?['email']` |
-| Name | `outputs('Payload')?['name']` |
-| Timepoint | `outputs('Payload')?['timepoint']` |
-| Unit | `outputs('Payload')?['unit']` |
-| Role | `outputs('Payload')?['role']` |
-| Years in role | `outputs('Payload')?['yearsExp']` |
-| Prior training | `outputs('Payload')?['priorTraining']` |
-| Prior training count | `outputs('Payload')?['priorTrainingCount']` |
-| Any prior training | `outputs('Payload')?['anyPriorTraining']` |
-| Training recency | `outputs('Payload')?['trainingRecency']` |
-| Q1 … Q10 | `outputs('Payload')?['q1']` … `['q10']` |
-| Total score | `outputs('Payload')?['totalScore']` |
-| Mean score | `outputs('Payload')?['meanScore']` |
-| Psychological mean | `outputs('Payload')?['psychMean']` |
-| Physical mean | `outputs('Payload')?['physMean']` |
-| Training mean | `outputs('Payload')?['trainMean']` |
-| Submitted UTC | `outputs('Payload')?['submittedUtc']` |
-| Timezone | `outputs('Payload')?['timezone']` |
-| Client ID | `outputs('Payload')?['clientId']` |
-| Form version | `outputs('Payload')?['formVersion']` |
+| Title | `outputs('Split_CSV_row')?[1]` |
+| Name | `outputs('Split_CSV_row')?[2]` |
+| Timepoint | `outputs('Split_CSV_row')?[3]` |
+| Unit | `outputs('Split_CSV_row')?[4]` |
+| Role | `outputs('Split_CSV_row')?[5]` |
+| Years in role | `outputs('Split_CSV_row')?[6]` |
+| Prior training | `outputs('Split_CSV_row')?[7]` |
+| Prior training count | `outputs('Split_CSV_row')?[8]` |
+| Any prior training | `outputs('Split_CSV_row')?[9]` |
+| Training recency | `outputs('Split_CSV_row')?[10]` |
+| Q1 … Q10 | `outputs('Split_CSV_row')?[16]` … `?[25]` |
+| Total score | `outputs('Split_CSV_row')?[11]` |
+| Mean score | `outputs('Split_CSV_row')?[12]` |
+| Psychological mean | `outputs('Split_CSV_row')?[13]` |
+| Physical mean | `outputs('Split_CSV_row')?[14]` |
+| Training mean | `outputs('Split_CSV_row')?[15]` |
+| Submitted UTC | `outputs('Split_CSV_row')?[0]` |
+| Timezone | `outputs('Split_CSV_row')?[26]` |
+| Client ID | `outputs('Split_CSV_row')?[27]` |
+| Form version | `outputs('Split_CSV_row')?[28]` |
 
-If the list's **Title** column is required, mapping it to the email (as above)
-keeps the list readable at a glance.
+**`Title` is the email** — there is no separate Email column. The Excel import
+that created the list folded the first spreadsheet column into `Title`.
 
-### 2d. Respond — this step is not optional
+**The index order and the list's column order differ.** Q1–Q10 are 16–25 while
+the score columns are 11–15. Filling the Create item form straight down in
+index order puts Total score into Q1.
 
-Add **Request → Response** as the last action:
+**No special-type wrappers are needed.** Every column is Text, Note, or Number
+— no booleans, hyperlinks, or Date-Only fields. The 16 Number columns accept
+numeric strings and Power Automate coerces them. If one ever throws a type
+error, wrap that one in `float(...)`.
 
-- **Status Code:** `200`
-- **Headers:**
-  - `Access-Control-Allow-Origin` → `https://scottbrickner.github.io`
-  - `Content-Type` → `application/json`
-- **Body:** `{ "status": "ok" }`
-
-Without that `Access-Control-Allow-Origin` header the row still lands in
-SharePoint, but the browser blocks the page from reading the reply — so every
-respondent sees a failure message for a submission that actually worked.
-
-### 2e. Copy the URL
-
-Save the flow, reopen the trigger, copy the **HTTP POST URL**.
+**Keep the columns out of Choice.** They were created as Text by the Excel
+import, and that is load-bearing: Choice columns are the most likely
+explanation for the original silent-drop failures.
 
 ---
 
-## Step 3 — Wire it up
+## Part 4 — study design as currently configured
 
-In `config.js`, set:
+**Baseline only.** `timepoints` shows Post-training and 30-day follow-up but
+marks them `disabled: true`, because no intervention has been defined yet.
+Re-opening them is deleting `disabled: true` — no schema change, because the
+Timepoint column is plain text and already accepts any string.
 
-```js
-endpoint: "https://prod-XX.westus.logic.azure.com:443/workflows/...",
-```
+**Unit defaults to `ICU Float Pool`**, matching the study population. Strings
+match the KHS roster's Department field exactly, so responses can be joined to
+staffing data. Note it is "ICU Float Pool", not "Float Pool ICU".
 
-Then:
+Scoped to 21 direct-care inpatient units (~1,248 active staff). Deliberately
+excluded: Periop Float Pool, all 12 periop/procedural areas, and the two
+non-direct-care departments. There is no Emergency Department in the KHS
+roster — it is inpatient and periop only.
 
-```
-git add config.js
-git commit -m "Wire submission endpoint"
-git push
-```
+**A defaulted unit has a cost.** Anyone who does not look submits ICU Float
+Pool. Fine while the population is float pool; delete the `fieldDefaults`
+entry before extending to broader RN/CNA groups.
 
-The Pages workflow redeploys automatically. The "local-only mode" notice
-disappears on its own once `endpoint` is non-empty.
-
-**Test end to end:** open the live URL, submit a real response, confirm a row
-appears in the list, then delete that test row.
-
----
-
-## The CORS workaround, and why the page looks like it's doing something odd
-
-The Power Automate HTTP trigger does not answer CORS **preflight** (`OPTIONS`)
-requests. A normal `fetch` with `Content-Type: application/json` triggers a
-preflight, gets no valid response, and the POST never fires.
-
-The page therefore sends the JSON body with **no `Content-Type` header at all**.
-The browser defaults to `text/plain;charset=UTF-8`, which is a "simple" content
-type, so no preflight is issued and the POST goes straight through. That is why
-the flow parses with `json(triggerBody())` instead of using a trigger schema.
-
-Do not "fix" this by adding a `Content-Type` header to the fetch call. It will
-break every submission.
+**No resubmit.** The results screen offers only a CSV download. A reload still
+lets someone submit again, so it is a speed bump against accidental
+duplicates, not a lock. `Client ID` (per browser) and `Submitted UTC` are how
+you spot real duplicates.
 
 ---
 
-## Security reality check
+## Part 5 — analysis
 
-The flow URL contains its own access signature and sits in a public page's
-`config.js`. Anyone who views source can see it and post to it.
-
-That is the standard trade-off for this pattern and acceptable for an internal
-self-assessment, but know what it means:
-
-- Anyone on the internet can write rows to the list. Junk submissions are possible.
-- The `@med.usc.edu` check runs **in the browser** and is trivially bypassed. It
-  stops typos and wrong-address entries, not a determined actor.
-- Want a speed bump? Put a `formKey` value in `config.js` and start the flow with
-  a Condition that terminates unless `outputs('Payload')?['formKey']` matches.
-  Still visible in source; still only a speed bump.
-
-**If you need verified identity,** the page has to live inside the tenant
-(SharePoint page, Power Apps, or Azure Static Web Apps with Entra auth) where
-Entra ID authenticates the user. GitHub Pages is outside the tenant and
-structurally cannot do this.
-
----
-
-## Reporting
-
-The pre/post analysis is a self-join on `Email`:
+Pairing key is `Title` (email) + `Timepoint`. Once post data exists:
 
 - **Change score** = Post `Total score` − Pre `Total score`, per person
-- **Paired t-test or Wilcoxon** on those change scores for an abstract
-- **Item-level means** pre vs post, to show *which* confidence domains moved
+- **Paired t-test or Wilcoxon** on those change scores
+- **Item-level means** pre vs post, to show which confidence domains moved
 
-Because you're capturing prior training, two more cuts open up:
+Prior-training cuts that open up:
 
-- **Baseline confidence by prior training** — CPI vs AVADE vs Welle vs none, on
-  pre-training scores. The most interesting question in the dataset.
-- **Change score by prior-training status** — whether naive staff gain more than
-  previously-trained staff, i.e. whether your session is redundant for part of
-  the room.
+- baseline confidence by program — CPI vs AVADE vs Welle vs MOAB vs none
+- change score by prior-training status, i.e. whether the session is redundant
+  for previously-trained staff
 
-Sample sizes per program will be small and self-selected. Treat these as
-descriptive and hypothesis-generating. Do not let anyone turn "AVADE scored
-lower" into a procurement argument off n=9.
+Sample sizes per program will be small and self-selected. Descriptive and
+hypothesis-generating only. Do not let "AVADE scored lower" become a
+procurement argument off n=9.
 
-Watch for: post submissions with no matching pre (drop from paired analysis,
-report separately), and duplicate submissions at the same timepoint (keep the
-first; `Client ID` and `Submitted UTC` help you tell).
+**The three group means are not validated subscales.** Thackrey validated the
+CCCPA as unidimensional. Psychological / Physical / Training are a convenience
+for training debriefs. Do not report them as subscales in an abstract.
+
+---
+
+## Part 6 — gotchas worth remembering
+
+**Two copies of every file.** The repo lives on the Mac; edits made in a cloud
+session must be written to both. A config change applied to only one side
+silently reverted `formSubmitId` to `""` once, which would have put the live
+form back into local-only mode with no visible error.
+
+**GitHub Pages caching.** After a push, a fetch of `config.js` can return the
+old file for a while. Append a query string (`?v=2`) to bust it when verifying.
+
+**The first Actions run will fail** if you push before setting Pages Source to
+GitHub Actions. Re-run it after; nothing is wrong with the build.
+
+**Your email is in the git history** from the Phase 1 commit, even though the
+live page now uses the masked ID. Accepted, not fixed.
+
+---
+
+## Maintenance quick reference
+
+| To change | Edit |
+|---|---|
+| Where responses go | `formSubmitId` in `config.js` |
+| Subject line format | `emailSubject` in `config.js` |
+| Open post-training | delete `disabled: true` from that timepoint |
+| Unit list | `units` in `config.js` |
+| Remove the unit default | delete `fieldDefaults.unit` |
+| Add a data field | append to `CSV_COLS`, add a SharePoint column, add a Create item mapping at the new index |
+
+Every change is a push to `main`; the Pages workflow redeploys automatically.
